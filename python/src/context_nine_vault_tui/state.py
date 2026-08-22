@@ -77,7 +77,7 @@ class VaultStateClient:
 
     def resolved_command(self) -> str:
         if self.vault_command == "vault":
-            local = self.vault_root / "_master/system/scripts/vault.py"
+            local = self.vault_root / "_system/commands/vault.py"
             if local.exists():
                 return str(local)
         return self.vault_command

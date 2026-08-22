@@ -33,14 +33,13 @@ export interface VaultCommandLoadResult {
   warning?: string;
 }
 
-export const VAULT_COMMAND_METADATA_PATH = "_master/system/scripts/vault-commands.json";
-const LEGACY_VAULT_COMMAND_METADATA_PATH = "master/system/scripts/vault-commands.json";
+export const VAULT_COMMAND_METADATA_PATH = "_system/commands/vault-commands.json";
 
 export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
   {
     id: "refresh",
     label: "Refresh",
-    description: "Run Google Calendar task sync and regenerate agent context.",
+    description: "Refresh integrations, schedules, periodic rollups, and Dashboard.",
     args: ["refresh"],
     cockpit: true,
     palette: true,
@@ -67,12 +66,6 @@ export const FALLBACK_VAULT_COMMANDS: VaultCommandDefinition[] = [
     args: ["sync"],
     aliases: ["apple"],
     cockpit: true,
-  },
-  {
-    id: "context",
-    label: "Context",
-    description: "Regenerate compact agent-readable context and dashboard files.",
-    args: ["context"],
   },
   {
     id: "content",
@@ -145,15 +138,10 @@ export async function loadVaultCommandMetadata(app: App): Promise<VaultCommandLo
     const json = await app.vault.adapter.read(VAULT_COMMAND_METADATA_PATH);
     return parseVaultCommandMetadata(json);
   } catch (error) {
-    try {
-      const json = await app.vault.adapter.read(LEGACY_VAULT_COMMAND_METADATA_PATH);
-      return parseVaultCommandMetadata(json);
-    } catch {
-      return {
-        commands: FALLBACK_VAULT_COMMANDS,
-        warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
-      };
-    }
+    return {
+      commands: FALLBACK_VAULT_COMMANDS,
+      warning: `Could not read ${VAULT_COMMAND_METADATA_PATH}: ${messageForError(error)}`,
+    };
   }
 }
 

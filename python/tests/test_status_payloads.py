@@ -5,13 +5,15 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 
-VAULT_ROOT = Path(
-    os.environ.get(
-        "VAULT_ROOT",
-        "/Users/matthewderman/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault",
-    )
+
+CONFIGURED_VAULT_ROOT = os.environ.get("VAULT_ROOT")
+pytestmark = pytest.mark.skipif(
+    CONFIGURED_VAULT_ROOT is None,
+    reason="VAULT_ROOT is required for cross-repository status contracts",
 )
+VAULT_ROOT = Path(CONFIGURED_VAULT_ROOT or "/missing-vault-root")
 
 
 def load_module(path: Path, name: str):
@@ -26,7 +28,7 @@ def load_module(path: Path, name: str):
 
 def test_backup_status_payload_shape(monkeypatch):
     control_room = load_module(
-        VAULT_ROOT / "_master/backup-and-sync/scripts/control-room.py",
+        VAULT_ROOT / "_system/sync/scripts/control-room.py",
         "backup_control_room",
     )
     config = {
@@ -48,7 +50,7 @@ def test_backup_status_payload_shape(monkeypatch):
 
 def test_refresh_schedule_payload_shape(monkeypatch, tmp_path):
     refresh_schedule = load_module(
-        VAULT_ROOT / "_master/system/scripts/refresh_schedule.py",
+        VAULT_ROOT / "_system/commands/refresh_schedule.py",
         "refresh_schedule",
     )
     monkeypatch.setattr(refresh_schedule, "STATE_DIR", tmp_path)

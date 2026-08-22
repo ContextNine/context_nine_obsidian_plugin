@@ -74,6 +74,13 @@
   flex: 1 1 auto;
 }
 
+.omp-vault-cockpit-refresh {
+  flex: 1 1 64px;
+  min-width: 48px;
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
 .omp-vault-cockpit-sync-icon {
   display: inline-flex;
   flex: 0 0 30px;
@@ -84,7 +91,18 @@
   padding: 0;
 }
 
-.omp-vault-cockpit-sync-icon svg {
+.omp-vault-cockpit-icon-command {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+}
+
+.omp-vault-cockpit-sync-icon svg,
+.omp-vault-cockpit-icon-command svg {
   width: 16px;
   height: 16px;
 }
@@ -148,12 +166,6 @@
   font-size: var(--font-ui-smaller);
 }
 
-.omp-vault-cockpit-git-commit {
-  min-height: 24px;
-  padding: 2px 7px;
-  font-size: var(--font-ui-smaller);
-}
-
 .omp-vault-cockpit-log-actions {
   display: flex;
   gap: 6px;
@@ -205,6 +217,33 @@
 .omp-archive-task-button:hover {
   background-color: #b45309;
   color: white;
+}
+
+.omp-delete-task-button {
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.omp-delete-task-button:hover:not(:disabled) {
+  background-color: var(--background-modifier-error-hover);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--background-modifier-error) 35%, transparent);
+  color: var(--text-on-accent);
+  transform: translateY(-1px);
+}
+
+.omp-delete-task-button:active:not(:disabled) {
+  box-shadow: none;
+  transform: translateY(0) scale(0.97);
+}
+
+.omp-delete-task-button.is-deleting {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 .omp-epic-picker {

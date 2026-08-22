@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { parseVaultCommandMetadata } from "../src/vault-command-metadata";
+import { FALLBACK_VAULT_COMMANDS, parseVaultCommandMetadata } from "../src/vault-command-metadata";
 
 describe("vault command metadata", () => {
-  it("keeps legacy command metadata compatible", () => {
+  it("keeps refresh fallback and omits removed context command", () => {
+    expect(FALLBACK_VAULT_COMMANDS.find((command) => command.id === "refresh")?.description).toContain("Dashboard");
+    expect(FALLBACK_VAULT_COMMANDS.some((command) => command.id === "context")).toBe(false);
+  });
+
+  it("accepts minimal command metadata", () => {
     const result = parseVaultCommandMetadata(
       JSON.stringify([
         {

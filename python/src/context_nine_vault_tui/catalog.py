@@ -11,7 +11,7 @@ Mode = Literal["run", "interactive", "long-running"]
 Confirm = bool | Literal["strong"]
 
 
-METADATA_PATH = Path("_master/system/scripts/vault-commands.json")
+METADATA_PATH = Path("_system/commands/vault-commands.json")
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ FALLBACK_COMMANDS = (
     VaultCommand(
         id="refresh",
         label="Refresh",
-        description="Run Google Calendar task sync and regenerate agent context.",
+        description="Refresh integrations, schedules, periodic rollups, and Dashboard.",
         args=("refresh",),
         cockpit=True,
         palette=True,
@@ -191,4 +191,3 @@ def commands_by_group(commands: tuple[VaultCommand, ...]) -> dict[str, list[Vaul
 
 def is_string_list(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
-

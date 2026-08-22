@@ -4,24 +4,29 @@ import { join } from "path";
 import { AttachmentRouter, noticeRouteResult } from "./attachment-router";
 import { FileActionService } from "./file-actions";
 import { TaskCaptureService } from "./task-capture";
-import { DEFAULT_SETTINGS, MasterPluginSettings } from "./types";
+import { DEFAULT_SETTINGS, ContextNineSettings } from "./types";
 import { VAULT_COCKPIT_VIEW_TYPE, VaultCockpitView } from "./vault-cockpit";
 import { TaskContextRouterService } from "./task-context-router";
 import { TaskNotesUxService } from "./tasknotes-ux";
 import { TaskNotesModalUiService } from "./tasknotes-modal-ui";
+import { PeriodicTabRolloverService } from "./periodic-tab-rollover-service";
+import { noteDirectory } from "./path-utils";
+import { WorkspaceTabRowService } from "./workspace-tab-row-service";
 import {
   loadVaultCommandMetadata,
   type VaultCommandDefinition,
 } from "./vault-command-metadata";
 
 export default class ContextNinePlugin extends Plugin {
-  settings: MasterPluginSettings;
+  settings: ContextNineSettings;
   private router: AttachmentRouter;
   private taskCapture: TaskCaptureService;
   private fileActions: FileActionService;
   private taskContextRouter: TaskContextRouterService;
   private taskNotesUx: TaskNotesUxService;
   private taskNotesModalUi: TaskNotesModalUiService;
+  private periodicTabRollover: PeriodicTabRolloverService;
+  private workspaceTabRows: WorkspaceTabRowService;
   private queuedInboxPaths = new Set<string>();
   private gcalSyncProcess: ChildProcessWithoutNullStreams | null = null;
 
@@ -30,8 +35,14 @@ export default class ContextNinePlugin extends Plugin {
     this.router = new AttachmentRouter(this.app, () => this.settings);
     this.fileActions = new FileActionService(this.app);
     this.taskContextRouter = new TaskContextRouterService(this.app, () => this.settings);
-    this.taskNotesUx = new TaskNotesUxService(this.app);
-    this.taskNotesModalUi = new TaskNotesModalUiService(this.app, () => this.settings);
+    this.taskNotesUx = new TaskNotesUxService(this.app, () => this.settings);
+    this.taskNotesModalUi = new TaskNotesModalUiService(
+      this.app,
+      () => this.settings,
+      (file) => this.fileActions.deleteFile(file)
+    );
+    this.periodicTabRollover = new PeriodicTabRolloverService(this.app);
+    this.workspaceTabRows = new WorkspaceTabRowService(this.app);
     this.taskCapture = new TaskCaptureService(
       this.app,
       this.router,
@@ -95,6 +106,20 @@ export default class ContextNinePlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "copy-current-note-directory",
+      name: "Copy current note directory",
+      hotkeys: [
+        {
+          modifiers: ["Mod", "Alt"],
+          key: "C",
+        },
+      ],
+      callback: () => {
+        void this.copyCurrentNoteDirectory();
+      },
+    });
+
+    this.addCommand({
       id: "capture-selection-to-task",
       name: "Capture selection to new TaskNotes task",
       hotkeys: [
@@ -133,12 +158,6 @@ export default class ContextNinePlugin extends Plugin {
     this.addCommand({
       id: "delete-hovered-or-active-file",
       name: "Delete hovered or selected file",
-      hotkeys: [
-        {
-          modifiers: ["Mod"],
-          key: "Backspace",
-        },
-      ],
       callback: () => {
         void this.fileActions.deleteHoveredOrActiveFile();
       },
@@ -174,6 +193,33 @@ export default class ContextNinePlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "refresh-past-periodic-tabs",
+      name: "Refresh past periodic-note tabs",
+      callback: () => {
+        void this.periodicTabRollover.rollForwardToToday();
+      },
+    });
+
+    this.registerCliHandler(
+      "context-nine:refresh-periodic-tabs",
+      "Replace open past periodic-note tabs with the current period in the same scope.",
+      {
+        date: {
+          value: "<YYYY-MM-DD>",
+          description: "Only run when this date is the machine's current local date.",
+        },
+        "run-id": {
+          value: "<id>",
+          description: "Refresh completion run ID used to deduplicate notifications.",
+        },
+      },
+      async (params) => {
+        const result = await this.periodicTabRollover.handleCli(params.date, params["run-id"]);
+        return JSON.stringify(result);
+      }
+    );
+
     if (this.settings.enableAutoAttachmentRouter) {
       this.registerAttachmentWatcher();
     }
@@ -190,8 +236,10 @@ export default class ContextNinePlugin extends Plugin {
       this.taskNotesModalUi.register(this);
     }
     this.taskNotesUx.register(this);
+    this.periodicTabRollover.register(this);
+    this.workspaceTabRows.register(this);
 
-    this.addSettingTab(new ObsidianMasterSettingTab(this));
+    this.addSettingTab(new ContextNineSettingTab(this));
   }
 
   onunload(): void {
@@ -200,7 +248,7 @@ export default class ContextNinePlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const loadedSettings = (await this.loadData()) as Partial<MasterPluginSettings> | null;
+    const loadedSettings = (await this.loadData()) as Partial<ContextNineSettings> | null;
     const currentVaultRoot = this.getCurrentVaultRoot();
     this.settings = {
       ...DEFAULT_SETTINGS,
@@ -222,7 +270,7 @@ export default class ContextNinePlugin extends Plugin {
   }
 
   getVaultCommand(command: string, cwd: string): string {
-    return command === "vault" ? join(cwd, "_master/system/scripts/vault.py") : command;
+    return command === "vault" ? join(cwd, "_system/commands/vault.py") : command;
   }
 
   openVaultTui(): void {
@@ -342,6 +390,23 @@ export default class ContextNinePlugin extends Plugin {
 
     await this.app.workspace.revealLeaf(leaf);
     this.app.workspace.setActiveLeaf(leaf, { focus: true });
+  }
+
+  private async copyCurrentNoteDirectory(): Promise<void> {
+    const file = this.app.workspace.getActiveFile();
+    if (!file) {
+      new Notice("Open a note before copying its directory.");
+      return;
+    }
+
+    const directory = noteDirectory(file.path);
+    try {
+      await navigator.clipboard.writeText(directory);
+      new Notice(`Copied note directory: ${directory}`);
+    } catch (error) {
+      console.error("Could not copy current note directory", error);
+      new Notice("Could not copy the current note directory.");
+    }
   }
 
   private getMainPaneLeaves(): WorkspaceLeaf[] {
@@ -513,7 +578,7 @@ class VaultPromptArgsModal extends Modal {
   }
 }
 
-class ObsidianMasterSettingTab extends PluginSettingTab {
+class ContextNineSettingTab extends PluginSettingTab {
   constructor(private readonly plugin: ContextNinePlugin) {
     super(plugin.app, plugin);
   }
