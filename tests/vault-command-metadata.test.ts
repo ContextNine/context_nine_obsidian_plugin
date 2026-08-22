@@ -22,7 +22,7 @@ describe("vault command metadata", () => {
     });
   });
 
-  it("parses palette flags and prompt args", () => {
+  it("parses palette flags, prompt args, and v2 tui metadata", () => {
     const result = parseVaultCommandMetadata(
       JSON.stringify([
         {
@@ -32,11 +32,19 @@ describe("vault command metadata", () => {
           args: ["folder", "register"],
           cockpit: false,
           palette: true,
+          group: "Folders",
+          risk: "apply",
+          tui: true,
+          mode: "run",
+          confirm: true,
+          statusArgs: ["inventory", "--json"],
           promptArgs: [
             {
               label: "Context folder",
               placeholder: "impression",
               argName: "name",
+              type: "choice",
+              choices: ["impression.nosync", "personal"],
             },
           ],
         },
@@ -47,7 +55,21 @@ describe("vault command metadata", () => {
     expect(result.commands[0]).toMatchObject({
       cockpit: false,
       palette: true,
-      promptArgs: [{ label: "Context folder", placeholder: "impression", argName: "name" }],
+      group: "Folders",
+      risk: "apply",
+      tui: true,
+      mode: "run",
+      confirm: true,
+      statusArgs: ["inventory", "--json"],
+      promptArgs: [
+        {
+          label: "Context folder",
+          placeholder: "impression",
+          argName: "name",
+          type: "choice",
+          choices: ["impression.nosync", "personal"],
+        },
+      ],
     });
   });
 

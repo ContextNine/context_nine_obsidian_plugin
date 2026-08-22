@@ -48,11 +48,23 @@ export default class ContextNinePlugin extends Plugin {
       void this.openVaultCockpit();
     });
 
+    this.addRibbonIcon("terminal", "Open vault TUI", () => {
+      this.openVaultTui();
+    });
+
     this.addCommand({
       id: "open-vault-cockpit",
       name: "Open vault command center",
       callback: () => {
         void this.openVaultCockpit();
+      },
+    });
+
+    this.addCommand({
+      id: "open-vault-tui",
+      name: "Open vault TUI",
+      callback: () => {
+        this.openVaultTui();
       },
     });
 
@@ -211,6 +223,38 @@ export default class ContextNinePlugin extends Plugin {
 
   getVaultCommand(command: string, cwd: string): string {
     return command === "vault" ? join(cwd, "_master/system/scripts/vault.py") : command;
+  }
+
+  openVaultTui(): void {
+    const cwd = this.settings.vaultRoot || this.getCurrentVaultRoot() || DEFAULT_SETTINGS.vaultRoot;
+    if (!cwd) {
+      new Notice("Vault root is not configured.");
+      return;
+    }
+    const command = `export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"; cd ${shellQuote(cwd)} && vault tui`;
+    const script = [
+      'tell application "Terminal"',
+      "activate",
+      `do script ${appleScriptQuote(command)}`,
+      "end tell",
+    ].join("\n");
+    const child = spawn("osascript", ["-e", script], {
+      cwd,
+      env: {
+        ...process.env,
+        PATH: process.env.PATH
+          ? `${process.env.HOME}/.local/bin:${process.env.PATH}`
+          : `${process.env.HOME}/.local/bin`,
+      },
+    });
+    child.on("error", (error) => {
+      new Notice(`Could not open vault TUI: ${error.message}`);
+    });
+    child.on("close", (exitCode) => {
+      if (exitCode !== 0) {
+        new Notice(`Could not open vault TUI: osascript exited ${exitCode}`);
+      }
+    });
   }
 
   async openVaultCockpit(): Promise<void> {
@@ -567,4 +611,12 @@ class ObsidianMasterSettingTab extends PluginSettingTab {
       });
     });
   }
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function appleScriptQuote(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
