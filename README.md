@@ -91,3 +91,10 @@ GitHub releases must include these assets:
 - `styles.css`
 
 Release tag must match `manifest.json` version.
+
+The release workflow generates release notes and publishes provenance attestations for every
+asset. After downloading a release, verify an asset with:
+
+```bash
+gh attestation verify main.js -R MDerman/context_nine_obsidian_plugin
+```

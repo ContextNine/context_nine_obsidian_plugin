@@ -586,7 +586,6 @@ class ContextNineSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Context Nine" });
 
     new Setting(containerEl).setName("Default capture context").addText((text) => {
       text.setValue(this.plugin.settings.defaultContext).onChange(async (value) => {

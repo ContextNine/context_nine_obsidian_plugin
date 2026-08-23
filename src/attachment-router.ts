@@ -1,4 +1,11 @@
-import { App, Notice, TAbstractFile, TFile, TFolder, normalizePath } from "obsidian";
+import {
+  App,
+  Notice,
+  TAbstractFile,
+  TFile,
+  TFolder,
+  normalizePath,
+} from "obsidian";
 import { LinkSpan, parseAttachmentSpans, replaceSpans } from "./link-parser";
 import {
   attachmentFolderForRoot,
@@ -141,7 +148,7 @@ export class AttachmentRouter {
     const destination = await this.uniqueDestination(file, targetFolder);
     if (destination.existingFile) {
       if (forceMove || this.shouldMoveSource(file)) {
-        await this.app.vault.delete(file);
+        await this.app.fileManager.trashFile(file);
       }
       return destination.existingFile;
     }
@@ -236,8 +243,8 @@ export class AttachmentRouter {
 
   private async hashFile(file: TFile): Promise<string> {
     const buffer = await this.app.vault.readBinary(file);
-    if (globalThis.crypto?.subtle) {
-      const digest = await globalThis.crypto.subtle.digest("SHA-256", buffer);
+    if (activeWindow.crypto?.subtle) {
+      const digest = await activeWindow.crypto.subtle.digest("SHA-256", buffer);
       return Array.from(new Uint8Array(digest))
         .map((byte) => byte.toString(16).padStart(2, "0"))
         .join("");
