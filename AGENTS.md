@@ -7,3 +7,4 @@ This repository owns the public Context Nine Obsidian plugin and the Vault TUI s
 - The Python TUI is a Context Vault capability, not a standalone `ctx9` launcher component. Its dependency contract remains with the public Vault.
 - Never publish Vault content, credentials, machine-local state, or generated Obsidian workspace state from this repository.
 - Run the JavaScript and Python focused suites before release.
+- Repository-specific documentation lives in `docs/`. Update it with plugin, Vault TUI, compatibility, release, or verification changes and keep `docs/README.md` current.
