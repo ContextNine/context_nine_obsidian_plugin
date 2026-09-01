@@ -20,8 +20,6 @@ export interface ContextNineSettings {
   appleNotesAttachmentsPath: string;
   enableAutoAttachmentRouter: boolean;
   routeIntervalSeconds: number;
-  enableGcalSync: boolean;
-  gcalSyncIntervalSeconds: number;
   enableTaskContextRouter: boolean;
   deleteSourceAfterCapture: boolean;
   hoveredDeleteEnabled: boolean;
@@ -38,8 +36,6 @@ export const DEFAULT_SETTINGS: ContextNineSettings = {
   appleNotesAttachmentsPath: "_system/inbox/apple-notes-attachments",
   enableAutoAttachmentRouter: true,
   routeIntervalSeconds: 60,
-  enableGcalSync: true,
-  gcalSyncIntervalSeconds: 300,
   enableTaskContextRouter: true,
   deleteSourceAfterCapture: true,
   hoveredDeleteEnabled: true,

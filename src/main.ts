@@ -1,5 +1,5 @@
 import { Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, type App, type WorkspaceLeaf } from "obsidian";
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { spawn } from "child_process";
 import { join } from "path";
 import { AttachmentRouter, noticeRouteResult } from "./attachment-router";
 import { FileActionService } from "./file-actions";
@@ -28,7 +28,6 @@ export default class ContextNinePlugin extends Plugin {
   private periodicTabRollover: PeriodicTabRolloverService;
   private workspaceTabRows: WorkspaceTabRowService;
   private queuedInboxPaths = new Set<string>();
-  private gcalSyncProcess: ChildProcessWithoutNullStreams | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -222,9 +221,6 @@ export default class ContextNinePlugin extends Plugin {
 
     if (this.settings.enableAutoAttachmentRouter) {
       this.registerAttachmentWatcher();
-    }
-    if (this.settings.enableGcalSync) {
-      this.registerGcalSyncTimer();
     }
     if (this.settings.enableTaskContextRouter) {
       this.taskContextRouter.register(this);
@@ -468,60 +464,6 @@ export default class ContextNinePlugin extends Plugin {
     const moved = await this.taskContextRouter.routeAllTasks();
     new Notice(`Moved ${moved} task file${moved === 1 ? "" : "s"}.`);
   }
-
-  private registerGcalSyncTimer(): void {
-    const interval = Math.max(60, this.settings.gcalSyncIntervalSeconds) * 1000;
-    this.registerInterval(
-      window.setInterval(() => {
-        this.runGcalSync();
-      }, interval)
-    );
-  }
-
-  private runGcalSync(): void {
-    if (this.gcalSyncProcess) {
-      return;
-    }
-
-    const cwd = this.settings.vaultRoot || this.getCurrentVaultRoot() || DEFAULT_SETTINGS.vaultRoot;
-    const command = this.getVaultCommand(
-      this.settings.vaultCommand || DEFAULT_SETTINGS.vaultCommand,
-      cwd
-    );
-    const child = spawn(command, ["gcal", "sync-tasks", "--apply"], {
-      cwd,
-      env: {
-        ...process.env,
-        PATH: process.env.PATH
-          ? `${process.env.HOME}/.local/bin:${process.env.PATH}`
-          : `${process.env.HOME}/.local/bin`,
-      },
-    });
-
-    this.gcalSyncProcess = child;
-    child.stdout.on("data", (data: Buffer) => {
-      const text = data.toString().trim();
-      if (text) {
-        console.log("[Context Nine] gcal sync:", text);
-      }
-    });
-    child.stderr.on("data", (data: Buffer) => {
-      const text = data.toString().trim();
-      if (text) {
-        console.warn("[Context Nine] gcal sync:", text);
-      }
-    });
-    child.on("error", (error) => {
-      this.gcalSyncProcess = null;
-      console.error("[Context Nine] gcal sync failed", error);
-    });
-    child.on("close", (exitCode) => {
-      this.gcalSyncProcess = null;
-      if (exitCode !== 0) {
-        console.warn(`[Context Nine] gcal sync exited with ${exitCode}`);
-      }
-    });
-  }
 }
 
 class VaultPromptArgsModal extends Modal {
@@ -618,23 +560,6 @@ class ContextNineSettingTab extends PluginSettingTab {
         this.plugin.settings.routeIntervalSeconds = Number.isFinite(parsed)
           ? Math.max(5, parsed)
           : DEFAULT_SETTINGS.routeIntervalSeconds;
-        await this.plugin.saveSettings();
-      });
-    });
-
-    new Setting(containerEl).setName("Auto-sync Google Calendar tasks").addToggle((toggle) => {
-      toggle.setValue(this.plugin.settings.enableGcalSync).onChange(async (value) => {
-        this.plugin.settings.enableGcalSync = value;
-        await this.plugin.saveSettings();
-      });
-    });
-
-    new Setting(containerEl).setName("Google Calendar sync interval seconds").addText((text) => {
-      text.setValue(String(this.plugin.settings.gcalSyncIntervalSeconds)).onChange(async (value) => {
-        const parsed = Number.parseInt(value, 10);
-        this.plugin.settings.gcalSyncIntervalSeconds = Number.isFinite(parsed)
-          ? Math.max(60, parsed)
-          : DEFAULT_SETTINGS.gcalSyncIntervalSeconds;
         await this.plugin.saveSettings();
       });
     });
