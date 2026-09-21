@@ -96,5 +96,5 @@ The release workflow generates release notes and publishes provenance attestatio
 asset. After downloading a release, verify an asset with:
 
 ```bash
-gh attestation verify main.js -R MDerman/context_nine_obsidian_plugin
+gh attestation verify main.js -R ContextNine/context_nine_obsidian_plugin
 ```
