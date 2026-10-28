@@ -1,8 +1,8 @@
 # Context Nine
 
-TaskNotes capture, context routing, vault command cockpit, and attachment cleanup tools for Obsidian.
+Makes obsidian look better and support a lot of the agent-focused operations I use it with.
 
-Published by [Context Nine (CTX9)](https://ctx9.com/), an enterprise AI strategy and engineering studio founded by Matthew Derman.
+Published by [Context Nine (CTX9)](https://ctx9.com/), a suite of open-source tools and apps made by Matt.
 
 Context Nine is desktop-only. Vault Command Center and background sync commands use local Node.js process APIs.
 
